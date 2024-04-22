@@ -7,6 +7,9 @@ import time
 import pytz
 from datetime import datetime
 
+# This beta code has not been tested. 
+# This code might work or it might not work. 
+
 # Configure Alpaca API
 API_KEY_ID = os.getenv('APCA_API_KEY_ID')
 API_SECRET_KEY = os.getenv('APCA_API_SECRET_KEY')
