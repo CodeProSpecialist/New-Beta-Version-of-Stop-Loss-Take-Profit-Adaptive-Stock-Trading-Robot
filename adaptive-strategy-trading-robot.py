@@ -1,12 +1,17 @@
+import os
+import time
+import sys
+import logging
 import alpaca_trade_api as tradeapi
 import yfinance as yf
 import talib
 import numpy as np
-import os
-import time
 import pytz
 from datetime import datetime
 from transformers import LlamaForSequenceClassification, LlamaTokenizer
+
+# Create a logger
+logging.basicConfig(filename='important-program-messages.txt', level=logging.ERROR)
 
 # Load the Llama 3B model and tokenizer
 model = LlamaForSequenceClassification.from_pretrained('llama-3b')
@@ -173,6 +178,7 @@ class AdaptiveTrader:
                     print('Market is neutral.')
 
             except Exception as e:
+                logging.error(f'Error: {e}')
                 print(f'Error: {e}')
                 print('Restarting program in 5 seconds...')
                 time.sleep(5)
@@ -181,5 +187,12 @@ class AdaptiveTrader:
 # Create an instance of the trading robot
 trader = AdaptiveTrader(symbol, time_frame, threshold, position_size, stop_loss, take_profit)
 
-# Run the trading robot
-trader.run()
+try:
+    # Run the trading robot
+    trader.run()
+except Exception as e:
+    logging.error(f'Error: {e}')
+    print(f'Error: {e}')
+    print('Restarting program in 5 seconds...')
+    time.sleep(5)
+    os.execl(sys.executable, sys.executable, *sys.argv)
