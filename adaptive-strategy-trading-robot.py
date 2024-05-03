@@ -12,6 +12,14 @@ from transformers import LlamaForSequenceClassification, LlamaTokenizer
 model = LlamaForSequenceClassification.from_pretrained('llama-3b')
 tokenizer = LlamaTokenizer.from_pretrained('llama-3b')
 
+# Configure Alpaca API
+API_KEY_ID = os.getenv('APCA_API_KEY_ID')
+API_SECRET_KEY = os.getenv('APCA_API_SECRET_KEY')
+API_BASE_URL = os.getenv('APCA_API_BASE_URL')
+
+# Initialize Alpaca API
+api = tradeapi.REST(API_KEY_ID, API_SECRET_KEY, API_BASE_URL)
+
 # Define the trading symbol (e.g., SPY)
 symbol = 'SPY'
 
@@ -135,8 +143,10 @@ class AdaptiveTrader:
                 print(f'Stop Loss: {self.stop_loss:.2f}%')
                 print(f'Take Profit: {self.take_profit:.2f}%')
 
-                # Get list of stocks to buy with their current prices
-                stocks_to_buy = ['SPY', 'AAPL', 'GOOG']
+                # Get list of stocks to buy from a text file
+                with open('list-of-stocks-to-buy.txt', 'r') as f:
+                    stocks_to_buy = [line.strip() for line in f.readlines()]
+
                 stock_prices = {}
                 for stock in stocks_to_buy:
                     stock_prices[stock] = yf.download(stock, period='1d', interval='1m')['Close'][-1]
