@@ -6,17 +6,11 @@ import os
 import time
 import pytz
 from datetime import datetime
+from transformers import LlamaForSequenceClassification, LlamaTokenizer
 
-# This beta code has not been tested. 
-# This code might work or it might not work. 
-
-# Configure Alpaca API
-API_KEY_ID = os.getenv('APCA_API_KEY_ID')
-API_SECRET_KEY = os.getenv('APCA_API_SECRET_KEY')
-API_BASE_URL = os.getenv('APCA_API_BASE_URL')
-
-# Initialize Alpaca API
-api = tradeapi.REST(API_KEY_ID, API_SECRET_KEY, API_BASE_URL)
+# Load the Llama 3B model and tokenizer
+model = LlamaForSequenceClassification.from_pretrained('llama-3b')
+tokenizer = LlamaTokenizer.from_pretrained('llama-3b')
 
 # Define the trading symbol (e.g., SPY)
 symbol = 'SPY'
@@ -52,19 +46,29 @@ class AdaptiveTrader:
         # Calculate the price percentage change
         pct_change = np.diff(closes) / closes[:-1]
 
-        # Determine the market condition (bear or bull)
-        if np.mean(pct_change) < -self.threshold:
+        # Convert data to input format for Llama 3B model
+        input_ids = tokenizer.encode_plus(pct_change.tolist(), 
+                                          add_special_tokens=True, 
+                                          max_length=512, 
+                                          return_attention_mask=True, 
+                                          return_tensors='pt')
+        return input_ids
+
+    def analyze_market(self, input_ids):
+        # Get the predicted market condition from the Llama 3B model
+        outputs = model(input_ids)
+        predicted_market_condition = np.argmax(outputs.logits)
+
+        # Determine the market condition (bear, bull, or neutral)
+        if predicted_market_condition == 0:
             self.market_condition = 'bear'
-        elif np.mean(pct_change) > self.threshold:
+        elif predicted_market_condition == 1:
             self.market_condition = 'bull'
         else:
             self.market_condition = 'neutral'
 
-    def analyze_market(self):
-        # Get the current market data
-        self.get_market_data()
-
-        # Analyze the market condition and adjust trading behavior
+    def adjust_market_condition(self):
+        # Adjust trading behavior based on the market condition
         if self.market_condition == 'bear':
             self.adjust_bear_market()
         elif self.market_condition == 'bull':
@@ -115,8 +119,14 @@ class AdaptiveTrader:
                 current_time = datetime.now(eastern_time)
                 print(f'Current Time: {current_time.strftime("%Y-%m-%d %H:%M:%S")}')
 
-                # Analyze market and execute trade
-                self.analyze_market()
+                # Get market data and analyze market condition
+                input_ids = self.get_market_data()
+                self.analyze_market(input_ids)
+
+                # Adjust trading behavior based on market condition
+                self.adjust_market_condition()
+
+                # Execute trade
                 self.execute_trade()
 
                 # Print market condition and trading details
